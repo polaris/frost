@@ -151,12 +151,12 @@
   (dir-vector (sphere-center s) pt))
 
 (defun plane-norm (s pt)
-  (lm:C* -1 (plane-normal s)))
+  (plane-normal s))
 
 (defun init-scene ()
   (let ((srfcs nil)
 	(lghts nil))
-    (push (create-plane 0 1 0 100 .9) srfcs)
+    (push (create-plane 0 -1 0 100 .9) srfcs)
     (push (create-sphere 0 -200 -1200 200 .8) srfcs)
     (push (create-sphere -80 -50 -1200 200 .7) srfcs)
     (push (create-sphere 70 0 -1200 200 .9) srfcs)
