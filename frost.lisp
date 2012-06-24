@@ -72,12 +72,26 @@
 (defun sendray (scn r)
   (multiple-value-bind (s int) (first-hit scn r)
     (if s
-	(let ((color 0))
-	  (dolist (l (scene-lights scn))
-	    (let ((vl (dir-vector int (light-position l))))
-	      (setf color (+ color (* (lambert s int vl) (surface-color s))))))
-	  (min color 1))
+	(shade scn s int)
 	0)))
+
+(defun send-shadow-ray (o scn r)
+  (multiple-value-bind (s int dist) (first-hit scn r)
+    (declare (ignore int))
+    (if (and s (not (equal o s)))
+	dist
+	NIL)))  
+
+(defun shade (scn s int)
+  (let ((color 0))
+    (dolist (l (scene-lights scn))
+      (let* ((vl (dir-vector int (light-position l)))
+	     (sr (make-ray :origin int :direction vl))
+	     (dist (send-shadow-ray s scn sr)))
+	(if (or (null dist)
+		(> dist (distance int (light-position l))))
+	    (setf color (+ color (* (lambert s int vl) (surface-color s)))))))
+    (min color 1)))
 
 (defun first-hit (scn r)
   (let (surface hit dist)
@@ -90,7 +104,7 @@
 	      (setf surface s 
 		    hit h 
 		    dist d))))))
-    (values surface hit)))
+    (values surface hit dist)))
 
 (defun lambert (s int vl)
   (let ((vn (normal s int)))
@@ -124,9 +138,9 @@
 			(sq (- (point-z (ray-origin r)) (point-z c)))
 			(- (sq (sphere-radius s)))))))
     (if n
-	(make-point :x (+ (point-x (ray-origin r)) (* n (lm:x (ray-direction r))))
-		    :y (+ (point-y (ray-origin r)) (* n (lm:y (ray-direction r))))
-		    :z (+ (point-z (ray-origin r)) (* n (lm:z (ray-direction r))))))))
+	(make-point :x (+ (point-x (ray-origin r)) (* (- n 0.0001) (lm:x (ray-direction r))))
+		    :y (+ (point-y (ray-origin r)) (* (- n 0.0001) (lm:y (ray-direction r))))
+		    :z (+ (point-z (ray-origin r)) (* (- n 0.0001) (lm:z (ray-direction r))))))))
 
 (defun point-to-vector (p)
   (lm:make-vector 3 :initial-elements (list (point-x p)
@@ -138,9 +152,9 @@
 	 (v0 (- (+ (lm:dot-product (plane-normal s) (point-to-vector (ray-origin r))) (plane-distance s))))
 	 (n (/ v0 vd)))
     (if (>= n 0)
-	(make-point :x (+ (point-x (ray-origin r)) (* n (lm:x (ray-direction r))))
-		    :y (+ (point-y (ray-origin r)) (* n (lm:y (ray-direction r))))
-		    :z (+ (point-z (ray-origin r)) (* n (lm:z (ray-direction r))))))))
+	(make-point :x (+ (point-x (ray-origin r)) (* (- n 0.0001) (lm:x (ray-direction r))))
+		    :y (+ (point-y (ray-origin r)) (* (- n 0.0001) (lm:y (ray-direction r))))
+		    :z (+ (point-z (ray-origin r)) (* (- n 0.0001) (lm:z (ray-direction r))))))))
 
 (defun normal (s pt)
   (funcall (typecase s
@@ -152,6 +166,7 @@
   (dir-vector (sphere-center s) pt))
 
 (defun plane-norm (s pt)
+  (declare (ignore pt))
   (plane-normal s))
 
 (defun init-scene ()
