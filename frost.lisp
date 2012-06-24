@@ -92,9 +92,10 @@
 		    dist d))))))
     (values surface hit)))
 
-(defun lambert (s int vr)
+(defun lambert (s int vl)
   (let ((vn (normal s int)))
-    (max 0 (lm:dot-product vr vn))))
+    ;(break)
+    (max 0 (lm:dot-product vl vn))))
 
 (defun create-sphere (x y z r c)
   (make-sphere :radius r
@@ -156,7 +157,8 @@
 (defun init-scene ()
   (let ((srfcs nil)
 	(lghts nil))
-    (push (create-plane 0 -1 0 100 .9) srfcs)
+    (push (create-plane 0 1 .001 400 1) srfcs)
+    (push (create-plane 0 -1 .001 400 1) srfcs)
     (push (create-sphere 0 -200 -1200 200 .8) srfcs)
     (push (create-sphere -80 -50 -1200 200 .7) srfcs)
     (push (create-sphere 70 0 -1200 200 .9) srfcs)
@@ -165,7 +167,7 @@
       (do ((z 2 (1+ z)))
 	  ((> z 7))
 	(push (create-sphere (* x 200) 300 (* z -400) 50 .75) srfcs)))
-    (push (make-light :position (make-point :x 1000 :y -500 :z 0)) lghts)
+    (push (make-light :position (make-point :x 600 :y 0 :z 0)) lghts)
     (make-scene :eye (make-point :x 0 :y 0 :z 200) :surfaces srfcs :lights lghts)))
 
 (defun render (pathname scn width height res)
