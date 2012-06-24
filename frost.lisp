@@ -1,8 +1,9 @@
-(defpackage :FROST
-  (:use :CL :PNG)
-  (:export :RENDER))
-
-(in-package frost)
+;(defpackage :FROST
+;  (:use :CL :PNG)
+;  (:export :RENDER))
+;
+;(in-package frost)
+;
 
 (defstruct (point)
   x y z)
@@ -12,6 +13,9 @@
 
 (defstruct (sphere (:include surface))
   radius center)
+
+(defstruct (plane (:include surface))
+  normal distance)
 
 (defstruct (light)
   position)
@@ -51,8 +55,8 @@
     (do ((x (- (/ width 2)) (+ x 1)))
 	((< (- (/ width 2) x) 1))
       (put-pixel canvas 
-		 (+ x (/ width 2))
-		 (+ y (/ height 2))
+		 (- (- width 1) (+ x (/ width 2)))
+		 (- (- height 1) (+ y (/ height 2)))
 		 (color-at scn (/ x res) (/ y res))))))
 
 (defun dir-vector (p1 p2)
@@ -70,9 +74,9 @@
     (if s
 	(let ((color 0))
 	  (dolist (l (scene-lights scn))
-	    (let ((vl (dir-vector (light-position l) int)))
+	    (let ((vl (dir-vector int (light-position l))))
 	      (setf color (+ color (* (lambert s int vl) (surface-color s))))))
-	  (min color 255))
+	  (min color 1))
 	0)))
 
 (defun first-hit (scn r)
@@ -90,18 +94,22 @@
 
 (defun lambert (s int vr)
   (let ((vn (normal s int)))
-    (max 0 (+ (* (lm:x vr) (lm:x vn)) 
-	      (* (lm:y vr) (lm:y vn))
-	      (* (lm:z vr) (lm:z vn))))))
+    (max 0 (lm:dot-product vr vn))))
 
 (defun create-sphere (x y z r c)
   (make-sphere :radius r
 	       :center (make-point :x x :y y :z z)
 	       :color c))
 
+(defun create-plane (xn yn zn d c)
+  (make-plane :normal (lm:normalise (lm:make-vector 3 :initial-elements (list xn yn zn)))
+	      :distance d
+	      :color c))
+
 (defun intersect (s r)
   (funcall (typecase s 
-	     (sphere #'sphere-intersect))
+	     (sphere #'sphere-intersect)
+	     (plane #'plane-intersect))
 	   s r))
 
 (defun sphere-intersect (s r)
@@ -119,39 +127,49 @@
 		    :y (+ (point-y (ray-origin r)) (* n (lm:y (ray-direction r))))
 		    :z (+ (point-z (ray-origin r)) (* n (lm:z (ray-direction r))))))))
 
+(defun point-to-vector (p)
+  (lm:make-vector 3 :initial-elements (list (point-x p)
+					    (point-y p)
+					    (point-z p))))
+
+(defun plane-intersect (s r)
+  (let* ((vd (lm:dot-product (plane-normal s) (ray-direction r)))
+	 (v0 (- (+ (lm:dot-product (plane-normal s) (point-to-vector (ray-origin r))) (plane-distance s))))
+	 (n (/ v0 vd)))
+    (if (>= n 0)
+	(make-point :x (+ (point-x (ray-origin r)) (* n (lm:x (ray-direction r))))
+		    :y (+ (point-y (ray-origin r)) (* n (lm:y (ray-direction r))))
+		    :z (+ (point-z (ray-origin r)) (* n (lm:z (ray-direction r))))))))
+
 (defun normal (s pt)
   (funcall (typecase s
-	     (sphere #'sphere-normal))
+	     (sphere #'sphere-normal)
+	     (plane #'plane-norm))
 	   s pt))
 
 (defun sphere-normal (s pt)
-  (let* ((c (sphere-center s))
-	 (vn (lm:make-vector 3 
-			     :initial-elements (list (- (point-x c) (point-x pt))
-						     (- (point-y c) (point-y pt))
-						     (- (point-z c) (point-z pt))))))
-    (lm:normalise vn)))
+  (dir-vector (sphere-center s) pt))
+
+(defun plane-norm (s pt)
+  (lm:C* -1 (plane-normal s)))
 
 (defun init-scene ()
   (let ((srfcs nil)
 	(lghts nil))
-    (push (create-sphere 0 -300 -1200 200 .8) srfcs)
-    (push (create-sphere -80 -150 -1200 200 .7) srfcs)
-    (push (create-sphere 70 -100 -1200 200 .9) srfcs)
+    (push (create-plane 0 1 0 100 .9) srfcs)
+    (push (create-sphere 0 -200 -1200 200 .8) srfcs)
+    (push (create-sphere -80 -50 -1200 200 .7) srfcs)
+    (push (create-sphere 70 0 -1200 200 .9) srfcs)
     (do ((x -2 (1+ x)))
 	((> x 2))
       (do ((z 2 (1+ z)))
 	  ((> z 7))
 	(push (create-sphere (* x 200) 300 (* z -400) 50 .75) srfcs)))
-    (push (make-light :position (make-point :x 1000 :y 0 :z 0)) lghts)
+    (push (make-light :position (make-point :x 1000 :y -500 :z 0)) lghts)
     (make-scene :eye (make-point :x 0 :y 0 :z 200) :surfaces srfcs :lights lghts)))
 
-(defun render (pathname)
-  (let* ((scn (init-scene))
-	 (width 640) 
-	 (height 480)
-	 (res 3)
-	 (result (png:make-image height width 1)))
+(defun render (pathname scn width height res)
+  (let ((result (png:make-image height width 1)))
     (tracer scn result width height res)
     (let ((p (open pathname
 		   :direction :output
