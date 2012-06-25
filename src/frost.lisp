@@ -1,9 +1,13 @@
-;(defpackage :FROST
-;  (:use :CL :PNG)
-;  (:export :RENDER))
-;
-;(in-package frost)
-;
+#|
+  This file is a part of frost project.
+  Copyright (c) 2012 Jan Deinhard
+|#
+
+(in-package :cl-user)
+(defpackage frost
+  (:use :cl)
+  (:export :render :init-scene))
+(in-package :frost)
 
 (defstruct (point)
   x y z)

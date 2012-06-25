@@ -1,3 +1,7 @@
-.DS_Store
 *.fasl
-*.png
+*.dx32fsl
+*.dx64fsl
+*.lx32fsl
+*.lx64fsl
+*.x86f
+.DS_Store
