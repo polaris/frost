@@ -79,6 +79,7 @@
   (multiple-value-bind (s int dist) (first-hit scn r)
     (declare (ignore int))
     (if (and s (not (equal o s)))
+;    (if s
 	dist
 	NIL)))  
 
@@ -138,9 +139,9 @@
 			(sq (- (point-z (ray-origin r)) (point-z c)))
 			(- (sq (sphere-radius s)))))))
     (if n
-	(make-point :x (+ (point-x (ray-origin r)) (* (- n 0.0001) (lm:x (ray-direction r))))
-		    :y (+ (point-y (ray-origin r)) (* (- n 0.0001) (lm:y (ray-direction r))))
-		    :z (+ (point-z (ray-origin r)) (* (- n 0.0001) (lm:z (ray-direction r))))))))
+	(make-point :x (+ (point-x (ray-origin r)) (* (- n 0.0000000001) (lm:x (ray-direction r))))
+		    :y (+ (point-y (ray-origin r)) (* (- n 0.0000000001) (lm:y (ray-direction r))))
+		    :z (+ (point-z (ray-origin r)) (* (- n 0.0000000001) (lm:z (ray-direction r))))))))
 
 (defun point-to-vector (p)
   (lm:make-vector 3 :initial-elements (list (point-x p)
@@ -152,9 +153,9 @@
 	 (v0 (- (+ (lm:dot-product (plane-normal s) (point-to-vector (ray-origin r))) (plane-distance s))))
 	 (n (/ v0 vd)))
     (if (>= n 0)
-	(make-point :x (+ (point-x (ray-origin r)) (* (- n 0.0001) (lm:x (ray-direction r))))
-		    :y (+ (point-y (ray-origin r)) (* (- n 0.0001) (lm:y (ray-direction r))))
-		    :z (+ (point-z (ray-origin r)) (* (- n 0.0001) (lm:z (ray-direction r))))))))
+	(make-point :x (+ (point-x (ray-origin r)) (* (- n 0.0000000001) (lm:x (ray-direction r))))
+		    :y (+ (point-y (ray-origin r)) (* (- n 0.0000000001) (lm:y (ray-direction r))))
+		    :z (+ (point-z (ray-origin r)) (* (- n 0.0000000001) (lm:z (ray-direction r))))))))
 
 (defun normal (s pt)
   (funcall (typecase s
